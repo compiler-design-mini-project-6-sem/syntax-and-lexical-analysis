@@ -16,27 +16,70 @@ bool isKeyword(string word) {
 vector<Token> tokenize(string filename) {
     ifstream file(filename);
     vector<Token> tokens;
-    string word;
+    char c;
 
-    while (file >> word) {
+    while (file.get(c)) {
+        if (isspace(c)) continue;
 
-        if (isKeyword(word)) {
-            tokens.push_back({"KEYWORD", word});
+        if (isalpha(c)) {
+            string word = "";
+            word += c;
+            while (file.get(c)) {
+                if (isalnum(c) || c == '_') {
+                    word += c;
+                } else {
+                    file.unget();
+                    break;
+                }
+            }
+            if (isKeyword(word)) {
+                tokens.push_back({"KEYWORD", word});
+            } else {
+                tokens.push_back({"IDENTIFIER", word});
+            }
         }
-        else if (word == ":=") {
-            tokens.push_back({"ASSIGN_OP", word});
+        else if (isdigit(c) || (c == '-' && isdigit(file.peek()))) {
+            string num = "";
+            num += c;
+            while (file.get(c)) {
+                if (isdigit(c) || c == '.' || c == 'E' || c == 'e') {
+                    num += c;
+                }
+                else if ((c == '-' || c == '+') && (num.back() == 'E' || num.back() == 'e')) {
+                    num += c;
+                }
+                else {
+                    file.unget();
+                    break;
+                }
+            }
+            tokens.push_back({"NUMBER", num});
         }
-        else if (isdigit(word[0]) || (word[0]=='-' && word.size()>1)) {
-            tokens.push_back({"NUMBER", word});
+        else if (c == '"') {
+            string str = "\"";
+            while (file.get(c)) {
+                str += c;
+                if (c == '"') break;
+            }
+            tokens.push_back({"STRING", str});
         }
-        else if (word[0] == '"') {
-            tokens.push_back({"STRING", word});
+        else if (c == ':') {
+            if (file.peek() == '=') {
+                file.get(c);
+                tokens.push_back({"ASSIGN_OP", ":="});
+            } else {
+                tokens.push_back({"UNKNOWN", ":"});
+            }
         }
-        else if (word == "," || word == "[" || word == "]") {
-            tokens.push_back({"SEPARATOR", word});
+        else if (c == ',' || c == '[' || c == ']' || c == '.') {
+            string sep = "";
+            sep += c;
+            tokens.push_back({"SEPARATOR", sep});
         }
         else {
-            tokens.push_back({"IDENTIFIER", word});
+            string unk = "";
+            unk += c;
+            tokens.push_back({"UNKNOWN", unk});
         }
     }
 
