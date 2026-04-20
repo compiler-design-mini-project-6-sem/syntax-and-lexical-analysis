@@ -36,9 +36,10 @@ void parse(vector<Token>& tokens) {
         
         // Push terminal onto stack (SHIFT)
         string symName = t.type;
-        if (t.type == "KEYWORD") symName = t.value;
+        if (t.type == "KEYWORD") symName = t.value + "_KW";
         else if (t.type == "IDENTIFIER") symName = "ID";
         else if (t.type == "NUMBER") symName = "NUM";
+        else if (t.type == "STRING") symName = "STRING_LIT";
         else if (t.type == "ASSIGN_OP") symName = ":=";
         else if (t.type == "SEPARATOR") symName = t.value;
 
@@ -48,133 +49,114 @@ void parse(vector<Token>& tokens) {
         bool reduced = true;
         while (reduced) {
             reduced = false;
+            
+            // 1-Symbol Reductions
             if (st.size() >= 1) {
                 Symbol top = st.top();
-                
-                // TYPE -> INTEGER | REAL | STRING
-                if (top.name == "INTEGER" || top.name == "REAL" || top.name == "STRING") {
-                    st.pop();
-                    st.push({"TYPE", false, ""});
+                if (top.name == "INTEGER_KW" || top.name == "REAL_KW" || top.name == "STRING_KW") {
+                    st.pop(); st.push({"TYPE", false, ""});
                     out << "Reduced: TYPE -> " << top.name << endl;
                     reduced = true; continue;
                 }
-                
-                // VALUE -> NUM | STRING
-                if (top.name == "NUM" || top.name == "STRING") {
-                    st.pop();
-                    st.push({"VALUE", false, ""});
+                if (top.name == "NUM" || top.name == "STRING_LIT") {
+                    st.pop(); st.push({"VALUE", false, ""});
                     out << "Reduced: VALUE -> " << top.name << endl;
                     reduced = true; continue;
                 }
             }
 
+            // 2-Symbol Reductions
             if (st.size() >= 2) {
-                // Peek top 2
                 Symbol top1 = st.top(); st.pop();
                 Symbol top2 = st.top(); st.pop();
 
-                // PRINT_STMT -> PRINT STRING
-                if (top2.name == "PRINT" && top1.name == "VALUE") {
+                if (top2.name == "PRINT_KW" && top1.name == "VALUE") {
                     st.push({"PRINT_STMT", false, ""});
                     out << "Reduced: PRINT_STMT -> PRINT VALUE" << endl;
                     reduced = true; continue;
                 }
                 
-                // STMT -> DECL | ASSIGN | PRINT_STMT | FOR_STMT
                 if (top1.name == "DECL" || top1.name == "ASSIGN" || top1.name == "PRINT_STMT" || top1.name == "FOR_STMT") {
-                    st.push(top2); // put back
-                    st.push({"STMT", false, ""});
+                    st.push(top2); st.push({"STMT", false, ""});
                     out << "Reduced: STMT -> " << top1.name << endl;
                     reduced = true; continue;
                 }
 
-                // ID_LIST -> ID
-                if (top2.name == "TYPE" && top1.name == "ID") {
-                    st.push(top2);
-                    st.push({"ID_LIST", false, ""});
+                if ((top2.name == "TYPE" || top2.name == ",") && top1.name == "ID" && (i+1 == tokens.size() || tokens[i+1].value != ",")) {
+                    st.push(top2); st.push({"ID_LIST", false, ""});
                     out << "Reduced: ID_LIST -> ID" << endl;
                     reduced = true; continue;
                 }
                 
-                // STMTS -> STMTS STMT
                 if (top2.name == "STMTS" && top1.name == "STMT") {
+                    // Check if we should wait (e.g., if inside a loop that hasn't finished)
+                    // In a simple simulation, we'll reduce if the next token is END or another statement start.
                     st.push({"STMTS", false, ""});
                     out << "Reduced: STMTS -> STMTS STMT" << endl;
                     reduced = true; continue;
                 }
                 
-                // STMTS -> STMT (base case)
-                if (top2.name == "BEGIN" && top1.name == "STMT") {
-                    st.push(top2);
-                    st.push({"STMTS", false, ""});
+                if ((top2.name == "BEGIN_KW" || top2.name == "VALUE") && top1.name == "STMT") {
+                    st.push(top2); st.push({"STMTS", false, ""});
                     out << "Reduced: STMTS -> STMT" << endl;
                     reduced = true; continue;
                 }
 
-                st.push(top2);
-                st.push(top1);
+                st.push(top2); st.push(top1);
             }
 
+            // 3-Symbol Reductions
             if (st.size() >= 3) {
-                Symbol s1 = st.top(); st.pop();
-                Symbol s2 = st.top(); st.pop();
-                Symbol s3 = st.top(); st.pop();
+                Symbol top1 = st.top(); st.pop();
+                Symbol top2 = st.top(); st.pop();
+                Symbol top3 = st.top(); st.pop();
 
-                // ASSIGN -> ID := VALUE
-                if (s3.name == "ID" && s2.name == ":=" && s1.name == "VALUE") {
+                if (top3.name == "ID" && top2.name == ":=" && top1.name == "VALUE") {
                     st.push({"ASSIGN", false, ""});
                     out << "Reduced: ASSIGN -> ID := VALUE" << endl;
                     reduced = true; continue;
                 }
 
-                // DECL -> TYPE ID_LIST
-                if (s3.name == "TYPE" && s2.name == "ID_LIST" && (i+1 == tokens.size() || tokens[i+1].value != ",")) {
-                    // This is tricky because ID_LIST is recursive. 
-                    // Let's handle it by checking if next token is NOT a comma.
-                    st.push({"DECL", false, ""});
-                    out << "Reduced: DECL -> TYPE ID_LIST" << endl;
-                    reduced = true; continue;
+                if (top3.name == "TYPE" && top2.name == "ID_LIST") {
+                     st.push({"DECL", false, ""});
+                     st.push(top1); // Put back the lookahead
+                     out << "Reduced: DECL -> TYPE ID_LIST" << endl;
+                     reduced = true; continue;
                 }
-                
-                // ID_LIST -> ID , ID_LIST
-                if (s3.name == "ID" && s2.name == "," && s1.name == "ID_LIST") {
+
+                if (top3.name == "ID" && top2.name == "," && top1.name == "ID_LIST") {
                     st.push({"ID_LIST", false, ""});
                     out << "Reduced: ID_LIST -> ID , ID_LIST" << endl;
                     reduced = true; continue;
                 }
 
-                // P -> BEGIN STMTS END
-                if (s3.name == "BEGIN" && s2.name == "STMTS" && s1.name == "END") {
+                if (top3.name == "BEGIN_KW" && top2.name == "STMTS" && top1.name == "END_KW") {
                     st.push({"P", false, ""});
                     out << "Reduced: P -> BEGIN STMTS END" << endl;
                     reduced = true; continue;
                 }
 
-                st.push(s3);
-                st.push(s2);
-                st.push(s1);
+                st.push(top3); st.push(top2); st.push(top1);
             }
             
-            // FOR_STMT -> FOR ID := NUM TO NUM STMTS
+            // 7-Symbol Reductions (FOR loop)
             if (st.size() >= 7) {
-                Symbol s1 = st.top(); st.pop();
-                Symbol s2 = st.top(); st.pop();
-                Symbol s3 = st.top(); st.pop();
-                Symbol s4 = st.top(); st.pop();
-                Symbol s5 = st.top(); st.pop();
-                Symbol s6 = st.top(); st.pop();
-                Symbol s7 = st.top(); st.pop();
+                vector<Symbol> top7(7);
+                for(int j=6; j>=0; --j) { top7[j] = st.top(); st.pop(); }
 
-                if (s7.name == "FOR" && s6.name == "ID" && s5.name == ":=" && (s4.name == "NUM" || s4.name == "VALUE") && s3.name == "TO" && (s2.name == "NUM" || s2.name == "VALUE") && (s1.name == "STMTS" || s1.name == "STMT")) {
+                if (top7[0].name == "FOR_KW" && top7[1].name == "ID" && top7[2].name == ":=" && top7[3].name == "VALUE" && top7[4].name == "TO_KW" && top7[5].name == "VALUE" && top7[6].name == "STMTS") {
                     st.push({"FOR_STMT", false, ""});
                     out << "Reduced: FOR_STMT -> FOR ID := VALUE TO VALUE STMTS" << endl;
                     reduced = true; continue;
                 }
                 
-                st.push(s7); st.push(s6); st.push(s5); st.push(s4); st.push(s3); st.push(s2); st.push(s1);
+                for(int j=0; j<7; ++j) st.push(top7[j]);
             }
         }
     }
+
+
+
 
     if (!st.empty() && st.top().name == "P") {
         out << "Parsing Completed Successfully\n";
