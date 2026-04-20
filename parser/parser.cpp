@@ -1,183 +1,140 @@
 #include <iostream>
 #include <stack>
 #include <vector>
-#include <string>
+#include <map>
 #include "../utils/token.h"
 
 using namespace std;
 
-string mapToken(Token t) {
-    if (t.type == "KEYWORD") return t.value + "_KW";
-    if (t.type == "IDENTIFIER") return "ID";
-    if (t.type == "NUMBER") return "NUM";
-    if (t.type == "STRING") return "STRING";
-    if (t.type == "ASSIGN_OP") return ":=";
+string getSymbol(Token t) {
+    if (t.type=="KEYWORD") return t.value;
+    if (t.type=="IDENTIFIER") return "id";
+    if (t.type=="NUMBER") return "num";
+    if (t.type=="STRING") return "str";
+    if (t.type=="ASSIGN_OP") return ":=";
     return t.value;
 }
 
-void parse(vector<Token>& tokens) {
+void parse(vector<Token>& tokens, ostream& out) {
+    vector<string> input;
+    for (auto &t: tokens) input.push_back(getSymbol(t));
+    input.push_back("$");
+
     stack<string> st;
+    st.push("$");
+    st.push("program");
 
-    for (size_t i = 0; i < tokens.size(); i++) {
-        st.push(mapToken(tokens[i]));
+    int i=0;
 
-        bool reduced = true;
-        while (reduced) {
-            reduced = false;
+    while (!st.empty()) {
+        string top = st.top();
+        string curr = input[i];
 
-            // VALUE
-            if (!st.empty() && (st.top() == "NUM" || st.top() == "STRING")) {
-                st.pop(); st.push("VALUE");
-                reduced = true;
-                continue;
+        // LOGGING THE PARSING STEP
+        out << "Stack: ";
+        stack<string> tempSt = st;
+        vector<string> stackItems;
+        while (!tempSt.empty()) { stackItems.push_back(tempSt.top()); tempSt.pop(); }
+        for (int j = stackItems.size() - 1; j >= 0; j--) out << stackItems[j] << " ";
+        out << " | Input: " << curr << endl;
+
+        if (top == curr) {
+            out << "  [MATCH] " << curr << endl;
+            st.pop();
+            i++;
+        }
+
+        else if (top=="program") {
+            out << "  [EXPAND] program -> BEGIN stmt_list END" << endl;
+            st.pop();
+            st.push("END");
+            st.push("stmt_list");
+            st.push("BEGIN");
+        }
+
+        else if (top=="stmt_list") {
+            st.pop();
+            if (curr=="PRINT" || curr=="INTEGER" || curr=="REAL" || curr=="STRING" || curr=="FOR" || curr=="id") {
+                out << "  [EXPAND] stmt_list -> stmt stmt_list" << endl;
+                st.push("stmt_list");
+                st.push("stmt");
+            } else {
+                out << "  [EXPAND] stmt_list -> epsilon" << endl;
             }
+        }
 
-            // TYPE
-            if (!st.empty() &&
-                (st.top() == "INTEGER_KW" || st.top() == "REAL_KW" || st.top() == "STRING_KW")) {
-                st.pop(); st.push("TYPE");
-                reduced = true;
-                continue;
+        else if (top=="stmt") {
+            st.pop();
+            if (curr=="PRINT") {
+                out << "  [EXPAND] stmt -> PRINT expr ;" << endl;
+                st.push(";");
+                st.push("expr");
+                st.push("PRINT");
             }
-
-            // ASSIGN → ID := VALUE
-            if (st.size() >= 3) {
-                string a = st.top(); st.pop();
-                string b = st.top(); st.pop();
-                string c = st.top(); st.pop();
-
-                if (c == "ID" && b == ":=" && a == "VALUE") {
-                    st.push("ASSIGN");
-                    reduced = true;
-                    continue;
-                } else {
-                    st.push(c); st.push(b); st.push(a);
-                }
+            else if (curr=="INTEGER" || curr=="REAL" || curr=="STRING") {
+                out << "  [EXPAND] stmt -> type var_list ;" << endl;
+                st.push(";");
+                st.push("var_list");
+                st.push("type");
             }
-
-            // ID_LIST → ID , ID_LIST
-            if (st.size() >= 3) {
-                string a = st.top(); st.pop();
-                string b = st.top(); st.pop();
-                string c = st.top(); st.pop();
-
-                if (c == "ID" && b == "," && a == "ID_LIST") {
-                    st.push("ID_LIST");
-                    reduced = true;
-                    continue;
-                } else {
-                    st.push(c); st.push(b); st.push(a);
-                }
+            else if (curr=="id") {
+                out << "  [EXPAND] stmt -> id := expr ;" << endl;
+                st.push(";");
+                st.push("expr");
+                st.push(":=");
+                st.push("id");
             }
-
-            // ID_LIST → ID  (ONLY when safe)
-            if (!st.empty() && st.top() == "ID") {
-                st.pop();
-                st.push("ID_LIST");
-                reduced = true;
-                continue;
+            else if (curr=="FOR") {
+                out << "  [EXPAND] stmt -> FOR id := expr TO expr stmt_list END" << endl;
+                st.push("END");
+                st.push("stmt_list");
+                st.push("expr");
+                st.push("TO");
+                st.push("expr");
+                st.push(":=");
+                st.push("id");
+                st.push("FOR");
             }
+        }
 
-            // DECL → TYPE ID_LIST
-            if (st.size() >= 2) {
-                string a = st.top(); st.pop();
-                string b = st.top(); st.pop();
+        else if (top=="type") {
+            out << "  [EXPAND] type -> " << curr << endl;
+            st.pop();
+            st.push(curr);
+        }
 
-                if (b == "TYPE" && a == "ID_LIST") {
-                    st.push("DECL");
-                    reduced = true;
-                    continue;
-                } else {
-                    st.push(b); st.push(a);
-                }
+        else if (top=="var_list") {
+            out << "  [EXPAND] var_list -> id var_list_tail" << endl;
+            st.pop();
+            st.push("var_list_tail");
+            st.push("id");
+        }
+
+        else if (top=="var_list_tail") {
+            st.pop();
+            if (curr==",") {
+                out << "  [EXPAND] var_list_tail -> , id var_list_tail" << endl;
+                st.push("var_list_tail");
+                st.push("id");
+                st.push(",");
+            } else {
+                out << "  [EXPAND] var_list_tail -> epsilon" << endl;
             }
+        }
 
-            // PRINT → PRINT VALUE
-            if (st.size() >= 2) {
-                string a = st.top(); st.pop();
-                string b = st.top(); st.pop();
-
-                if (b == "PRINT_KW" && a == "VALUE") {
-                    st.push("PRINT_STMT");
-                    reduced = true;
-                    continue;
-                } else {
-                    st.push(b); st.push(a);
-                }
+        else if (top=="expr") {
+            st.pop();
+            if (curr=="id" || curr=="num" || curr=="str") {
+                out << "  [EXPAND] expr -> " << curr << endl;
+                st.push(curr);
             }
+        }
 
-            // STMT
-            if (!st.empty()) {
-                string top = st.top();
-                if (top == "DECL" || top == "ASSIGN" || top == "PRINT_STMT" || top == "FOR_STMT") {
-                    st.pop();
-                    st.push("STMT");
-                    reduced = true;
-                    continue;
-                }
-            }
-
-            // STMTS → STMTS STMT
-            if (st.size() >= 2) {
-                string a = st.top(); st.pop();
-                string b = st.top(); st.pop();
-
-                if (b == "STMTS" && a == "STMT") {
-                    st.push("STMTS");
-                    reduced = true;
-                    continue;
-                } else {
-                    st.push(b); st.push(a);
-                }
-            }
-
-            // STMTS → STMT (only when next is END or finished)
-            if (!st.empty() && st.top() == "STMT") {
-                st.pop();
-                st.push("STMTS");
-                reduced = true;
-                continue;
-            }
-
-            // FOR loop (must come AFTER STMTS is formed)
-            if (st.size() >= 8) {
-                vector<string> v(8);
-                for (int j = 7; j >= 0; j--) {
-                    v[j] = st.top(); st.pop();
-                }
-
-                if (v[0] == "FOR_KW" && v[1] == "ID" && v[2] == ":=" &&
-                    v[3] == "VALUE" && v[4] == "TO_KW" &&
-                    v[5] == "VALUE" && v[6] == "STMTS" &&
-                    v[7] == "END_KW") {
-
-                    st.push("FOR_STMT");
-                    reduced = true;
-                    continue;
-                } else {
-                    for (int j = 0; j < 8; j++) st.push(v[j]);
-                }
-            }
-
-            // PROGRAM
-            if (st.size() >= 3) {
-                string a = st.top(); st.pop();
-                string b = st.top(); st.pop();
-                string c = st.top(); st.pop();
-
-                if (c == "BEGIN_KW" && b == "STMTS" && a == "END_KW") {
-                    st.push("P");
-                    reduced = true;
-                    continue;
-                } else {
-                    st.push(c); st.push(b); st.push(a);
-                }
-            }
+        else {
+            out << "Parsing Failed at token: " << curr << endl;
+            return;
         }
     }
 
-    if (!st.empty() && st.top() == "P")
-        cout << "Parsing Successful\n";
-    else
-        cout << "Parsing Failed\n";
+    out << "Parsing Successful\n";
 }

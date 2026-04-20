@@ -23,13 +23,11 @@ vector<Token> tokenize(string filename) {
     while (file.get(c)) {
         if (isspace(c)) continue;
 
-        // IDENTIFIER / KEYWORD
         if (isalpha(c)) {
             string word;
             word += c;
-
             while (file.get(c)) {
-                if (isalnum(c) || c == '_') word += c;
+                if (isalnum(c)) word += c;
                 else { file.unget(); break; }
             }
 
@@ -39,45 +37,35 @@ vector<Token> tokenize(string filename) {
                 tokens.push_back({"IDENTIFIER", word});
         }
 
-        // NUMBER
-        else if (isdigit(c) || (c == '-' && isdigit(file.peek()))) {
+        else if (isdigit(c) || (c=='-' && isdigit(file.peek()))) {
             string num;
             num += c;
-
             while (file.get(c)) {
-                if (isdigit(c) || c == '.' || c == 'E' || c == 'e')
+                if (isdigit(c) || c=='.' || c=='E' || c=='e')
                     num += c;
-                else if ((c == '+' || c == '-') && (num.back() == 'E' || num.back() == 'e'))
+                else if ((c=='+'||c=='-') && (num.back()=='E'||num.back()=='e'))
                     num += c;
                 else { file.unget(); break; }
             }
-
             tokens.push_back({"NUMBER", num});
         }
 
-        // STRING
-        else if (c == '"') {
-            string str = "\"";
+        else if (c=='"') {
+            string str="\"";
             while (file.get(c)) {
-                str += c;
-                if (c == '"') break;
+                str+=c;
+                if (c=='"') break;
             }
             tokens.push_back({"STRING", str});
         }
 
-        // ASSIGN
-        else if (c == ':' && file.peek() == '=') {
+        else if (c==':' && file.peek()=='=') {
             file.get(c);
             tokens.push_back({"ASSIGN_OP", ":="});
         }
 
-        // SEPARATORS
-        else if (c == ',' || c == '[' || c == ']') {
-            tokens.push_back({"SEPARATOR", string(1, c)});
-        }
-
-        else {
-            tokens.push_back({"UNKNOWN", string(1, c)});
+        else if (c==',' || c==';') {
+            tokens.push_back({"SYMBOL", string(1,c)});
         }
     }
 
