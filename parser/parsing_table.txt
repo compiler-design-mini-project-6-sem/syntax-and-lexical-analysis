@@ -1,8 +1,0 @@
-State | Input | Action
------------------------
-0     | BEGIN | Shift 1
-1     | ID    | Shift
-      | PRINT | Shift
-      | FOR   | Shift
-...
-(You can mention simplified table for project)
