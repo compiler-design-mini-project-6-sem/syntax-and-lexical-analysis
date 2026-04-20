@@ -1,9 +1,39 @@
-Reduced: ID := VALUE
-Reduced: ID := VALUE
-Reduced: ID := VALUE
-Reduced: ID := VALUE
-Reduced: ID := VALUE
-Reduced: ID := VALUE
-Reduced: ID := VALUE
-Reduced: ID := VALUE
-Parsing Completed Successfully
+Reduced: TYPE -> STRING
+Reduced: TYPE -> INTEGER
+Reduced: ID_LIST -> ID
+Reduced: DECL -> TYPE ID_LIST
+Reduced: STMT -> DECL
+Reduced: TYPE -> REAL
+Reduced: ID_LIST -> ID
+Reduced: DECL -> TYPE ID_LIST
+Reduced: STMT -> DECL
+Reduced: TYPE -> STRING
+Reduced: ID_LIST -> ID
+Reduced: DECL -> TYPE ID_LIST
+Reduced: STMT -> DECL
+Reduced: VALUE -> NUM
+Reduced: ASSIGN -> ID := VALUE
+Reduced: STMT -> ASSIGN
+Reduced: VALUE -> NUM
+Reduced: ASSIGN -> ID := VALUE
+Reduced: STMT -> ASSIGN
+Reduced: VALUE -> NUM
+Reduced: ASSIGN -> ID := VALUE
+Reduced: STMT -> ASSIGN
+Reduced: VALUE -> NUM
+Reduced: ASSIGN -> ID := VALUE
+Reduced: STMT -> ASSIGN
+Reduced: VALUE -> NUM
+Reduced: ASSIGN -> ID := VALUE
+Reduced: STMT -> ASSIGN
+Reduced: TYPE -> STRING
+Reduced: ID_LIST -> ID
+Reduced: DECL -> TYPE ID_LIST
+Reduced: STMT -> DECL
+Reduced: TYPE -> STRING
+Reduced: VALUE -> NUM
+Reduced: ASSIGN -> ID := VALUE
+Reduced: STMT -> ASSIGN
+Reduced: VALUE -> NUM
+Reduced: TYPE -> STRING
+Parsing Failed: Stack not reduced to start symbol.
