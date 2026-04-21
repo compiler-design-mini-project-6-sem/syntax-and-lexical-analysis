@@ -1,0 +1,67 @@
+
+GRAMMAR:
+program -> BEGIN stmt_list END
+stmt_list -> stmt stmt_list
+stmt_list -> ε
+stmt -> PRINT expr ;
+stmt -> declaration
+stmt -> assignment
+stmt -> for_loop
+declaration -> type var_list ;
+type -> INTEGER
+type -> REAL
+type -> STRING
+var_list -> IDENTIFIER var_list_tail
+var_list_tail -> , IDENTIFIER var_list_tail
+var_list_tail -> ε
+assignment -> IDENTIFIER := expr ;
+for_loop -> FOR IDENTIFIER := expr TO expr stmt_list END
+expr -> IDENTIFIER
+expr -> NUMBER
+expr -> STRING
+
+FIRST SETS:
++----------------+----------------------------------------+
+| Non-Terminal   | First Set                              |
++================+========================================+
+| program        | BEGIN                                  |
++----------------+----------------------------------------+
+| stmt_list      | PRINT, INTEGER, REAL, STRING, FOR, END |
++----------------+----------------------------------------+
+| declaration    | INTEGER, REAL, STRING                  |
++----------------+----------------------------------------+
+| var_list       | IDENTIFIER                             |
++----------------+----------------------------------------+
+| var_list_tail  | ,, ε                                   |
++----------------+----------------------------------------+
+| assignment     | IDENTIFIER                             |
++----------------+----------------------------------------+
+| for_loop       | FOR                                    |
++----------------+----------------------------------------+
+| expr           | IDENTIFIER, NUMBER, STRING             |
++----------------+----------------------------------------+
+| type           | INTEGER, REAL, STRING                  |
++----------------+----------------------------------------+
+
+FOLLOW SETS:
++----------------+----------------------------------------+
+| Non-Terminal   | Follow Set                             |
++================+========================================+
+| program        | $                                      |
++----------------+----------------------------------------+
+| stmt_list      | END                                    |
++----------------+----------------------------------------+
+| declaration    | PRINT, INTEGER, REAL, STRING, FOR, END |
++----------------+----------------------------------------+
+| var_list       | ;                                      |
++----------------+----------------------------------------+
+| var_list_tail  | ;                                      |
++----------------+----------------------------------------+
+| assignment     | PRINT, INTEGER, REAL, STRING, FOR, END |
++----------------+----------------------------------------+
+| for_loop       | PRINT, INTEGER, REAL, STRING, FOR, END |
++----------------+----------------------------------------+
+| expr           | ;, )                                   |
++----------------+----------------------------------------+
+| type           | IDENTIFIER                             |
++----------------+----------------------------------------+
