@@ -1,6 +1,6 @@
 from tabulate import tabulate
 
-# Grammar (same as PDF)
+# Grammar 
 grammar = {
 "program": ["BEGIN stmt_list END"],
 "stmt_list": ["stmt stmt_list", "ε"],
@@ -38,8 +38,32 @@ follow_sets_data = [
 ["expr", ";, )"],
 ["type", "IDENTIFIER"]
 ]
+#parsing table
+parsing_table = [
+["Non-Terminal", "BEGIN", "PRINT", "INT", "REAL", "STR", "FOR", "END", "ID", ":=", "TO", "NUM", "STR", ";", ",", "$"],
 
-# FULL PARSING ACTIONS (same as PDF)
+["program", "BEGIN sl END", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-"],
+
+["stmt_list", "-", "s sl", "s sl", "s sl", "s sl", "s sl", "ε", "-", "-", "-", "-", "-", "-", "-", "-"],
+
+["stmt", "-", "PRINT e;", "decl", "decl", "decl", "for", "-", "asgn", "-", "-", "-", "-", "-", "-", "-"],
+
+["decl", "-", "-", "t vl;", "t vl;", "t vl;", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-"],
+
+["type", "-", "-", "INT", "REAL", "STR", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-"],
+
+["var_list", "-", "-", "-", "-", "-", "-", "-", "id vt", "-", "-", "-", "-", "-", "-", "-"],
+
+["var_list_tail", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "ε", ",id vt", "-"],
+
+["assignment", "-", "-", "-", "-", "-", "-", "-", "id:=e;", "-", "-", "-", "-", "-", "-", "-"],
+
+["for_loop", "-", "-", "-", "-", "-", "FOR id:=e TO e sl", "-", "-", "-", "-", "-", "-", "-", "-", "-"],
+
+["expr", "-", "-", "-", "-", "-", "-", "-", "id", "-", "-", "num", "str", "-", "-", "-"]
+]
+
+# FULL PARSING ACTIONS 
 parsing_actions_data = [
 [1, "$", "", "Start parsing"],
 [2, "$", "BEGIN", "Apply: program → BEGIN stmt_list END"],
@@ -194,7 +218,15 @@ def print_parser_data():
 
     print("\nFOLLOW SETS:")
     print(tabulate(follow_sets_data, headers=["Non-Terminal", "Follow Set"], tablefmt="grid"))
-
+    
+def print_parsing_table():
+    print("\nPARSING TABLE:")
+    print(tabulate(
+        parsing_table,
+        headers="firstrow",
+        tablefmt="grid",
+        colalign=("left",) * len(parsing_table[0])
+    ))
 
 def run_ll1_simulation():
     print("\nFULL PARSING ACTIONS:")

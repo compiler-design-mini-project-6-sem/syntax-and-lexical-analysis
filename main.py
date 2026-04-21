@@ -1,5 +1,5 @@
 from lexer import tokenize
-from parser_module import print_parser_data, run_ll1_simulation
+from parser_module import print_parser_data, run_ll1_simulation, print_parsing_table
 from tabulate import tabulate
 import sys
 
@@ -46,6 +46,7 @@ with open("output_tokens.txt", "w") as f:
 with open("output_parser.txt", "w") as f:
     sys.stdout = f
     print_parser_data()
+    print_parsing_table()   
 
 
 # ---------- FILE 3: LL(1) PARSING STEPS ----------
